@@ -1,0 +1,142 @@
+{
+  "name": "aws_ecs_fargate_tasks_stopping_or_failing_to_start",
+  "description": "This incident type refers to the issue of Amazon Elastic Container Service (Amazon ECS) containers exiting unexpectedly, resulting in tasks stopping or failing to start when deployed on AWS ECS Fargate. This issue can occur due to various reasons, such as application issues, resource constraints, or other issues. To resolve this issue, the troubleshooting steps involve checking the diagnostic information in the service event log, checking for errors in stopped tasks, and configuring log driver options to send logs to a custom driver for the container. Additionally, memory constraint issues need to be addressed, and if the awslogs log driver is configured, checking the awslogs container logs in CloudWatch Logs can help resolve the issue.",
+  "params": [
+    {
+      "name": "TASK_DEFINITION_NAME",
+      "value": ""
+    },
+    {
+      "name": "TASK_ARNS",
+      "value": ""
+    },
+    {
+      "name": "IMAGE_URL",
+      "value": ""
+    },
+    {
+      "name": "SERVICE_NAME",
+      "value": ""
+    },
+    {
+      "name": "LOG_GROUP_NAME",
+      "value": ""
+    },
+    {
+      "name": "LOG_STREAM_NAME",
+      "value": ""
+    },
+    {
+      "name": "CONTAINER_NAME",
+      "value": ""
+    },
+    {
+      "name": "CLUSTER_NAME",
+      "value": ""
+    },
+    {
+      "name": "HOST_NAME",
+      "value": ""
+    },
+    {
+      "name": "K8S_CLUSTER_NAME",
+      "value": ""
+    },
+    {
+      "name": "NAMESPACE",
+      "value": ""
+    }
+  ],
+  "cells": [
+    {
+      "name": "cell_1",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## AWS ECS Fargate Tasks Stopping or Failing to Start\nThis incident type refers to the issue of Amazon Elastic Container Service (Amazon ECS) containers exiting unexpectedly, resulting in tasks stopping or failing to start when deployed on AWS ECS Fargate. This issue can occur due to various reasons, such as application issues, resource constraints, or other issues. To resolve this issue, the troubleshooting steps involve checking the diagnostic information in the service event log, checking for errors in stopped tasks, and configuring log driver options to send logs to a custom driver for the container. Additionally, memory constraint issues need to be addressed, and if the awslogs log driver is configured, checking the awslogs container logs in CloudWatch Logs can help resolve the issue."
+    },
+    {
+      "name": "cell_2",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Get the list of stopped tasks"
+    },
+    {
+      "name": "cell_3",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `aws ecs list-tasks --cluster $CLUSTER_NAME --desired-status STOPPED`"
+    },
+    {
+      "name": "cell_4",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Get the logs of a container instance"
+    },
+    {
+      "name": "cell_5",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `aws logs get-log-events --log-group ${LOG_GROUP_NAME} --log-stream-name ${LOG_STREAM_NAME}`"
+    },
+    {
+      "name": "cell_6",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the events of a service"
+    },
+    {
+      "name": "cell_7",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `aws ecs describe-services --cluster ${CLUSTER_NAME} --services ${SERVICE_NAME} --query \"services[].events\"`"
+    },
+    {
+      "name": "cell_8",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Get the details of a task definition"
+    },
+    {
+      "name": "cell_9",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `aws ecs describe-task-definition --task-definition ${TASK_DEFINITION_NAME}`"
+    },
+    {
+      "name": "cell_10",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Get the list of stopped tasks and check details and status of the stopped task"
+    },
+    {
+      "name": "cell_11",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_get_stopped_task_details($TASK_ARNS, $CLUSTER_NAME)"
+    },
+    {
+      "name": "cell_12",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the diagnostic information in the service event log to identify the cause of the issue."
+    },
+    {
+      "name": "cell_13",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_aws_logs_diagnostic_cause($LOG_GROUP_NAME)"
+    },
+    {
+      "name": "cell_14",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Increase the task memory limit if it is too low to accommodate the application."
+    },
+    {
+      "name": "cell_15",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_update_task_memory_limit($TASK_DEFINITION_NAME, $IMAGE_URL, $SERVICE_NAME, $CONTAINER_NAME, $CLUSTER_NAME)"
+    }
+  ]
+}
